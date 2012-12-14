@@ -6,6 +6,7 @@ module Fluent
     def initialize
       super
       require 'massive_record'
+      require 'time'
     end
 
     # Format dates with ISO 8606 by default
@@ -44,6 +45,7 @@ module Fluent
 
       unless @table.exists?
         columns = ([@tag_column_name, @time_column_name] + @mapping.values).reject(&:nil?)
+        columns = (@tag_column_name+ @mapping.values).reject(&:nil?)
         column_families = columns.map {|column_family_with_column|
           column_family, column = column_family_with_column.split(":")
 
@@ -98,9 +100,8 @@ MESSAGE
 
           (event[column_family.intern] ||= {}).update({column => value})
         }
-
         row = MassiveRecord::Wrapper::Row.new
-        row.id = SecureRandom.uuid
+        row.id = Time.parse(row_values['log:time']).strftime("%Y%m%d%H%M%S")+"-"+SecureRandom.uuid
         row.values = event
         row.table = @table
         row.save
